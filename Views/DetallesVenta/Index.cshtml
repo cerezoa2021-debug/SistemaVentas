@@ -1,0 +1,37 @@
+@using SistemaVentas.Models
+@model List<DetalleVenta>
+@{
+    ViewData["Title"] = "Detalles de venta";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Detalles de venta</h2>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Venta</th>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var detalle in Model)
+        {
+            <tr>
+                <td>@detalle.Id</td>
+                <td>#@detalle.VentaId</td>
+                <td>@detalle.Producto?.Nombre</td>
+                <td>@detalle.Cantidad</td>
+                <td>@detalle.Precio.ToString("0.##") Bs</td>
+                <td>@detalle.Subtotal.ToString("0.##") Bs</td>
+                <td>@(detalle.Venta?.Anulada == true ? "Anulada" : "Vigente")</td>
+            </tr>
+        }
+    </tbody>
+</table>

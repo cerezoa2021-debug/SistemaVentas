@@ -1,0 +1,11 @@
+@using SistemaVentas.Models
+@model Categoria 
+@{
+    ViewData["Title"]="Editar Categoría";
+}
+
+<h2>Nueva Categoría</h2>
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+    <partial name="_form" model="Model"/>
+</form>
+    

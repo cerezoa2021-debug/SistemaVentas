@@ -1,0 +1,277 @@
+@using SistemaVentas.Models
+@model Venta
+@{
+    ViewData["Title"] = "Registro de venta";
+    var productos = (ViewBag.Productos as List<Producto> ?? new List<Producto>())
+        .Select(p => new { id = p.Id, nombre = p.Nombre, precio = p.Precio, stock = p.Stock });
+    var clienteActual = Model.ClienteId > 0 ? Model.ClienteId.ToString() : "";
+}
+
+<h2 class="mb-3">Registro de venta</h2>
+
+<form asp-action="Create" method="post" id="form-venta">
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+    <input type="hidden" asp-for="ClienteId" id="ClienteId" value="@clienteActual" />
+
+    <div class="card mb-3">
+        <div class="card-header fw-semibold">1. Datos de la venta</div>
+        <div class="card-body row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Fecha</label>
+                <input class="form-control" id="fecha" readonly />
+            </div>
+            <div class="col-md-5 position-relative">
+                <label class="form-label">Buscar cliente (nombre o celular)</label>
+                <div class="input-group">
+                    <input id="buscar-cliente" class="form-control" autocomplete="off" placeholder="Escriba y presione Enter o Tab..." />
+                    <button type="button" class="btn btn-outline-primary" id="abrir-modal-cliente">Registrar cliente</button>
+                </div>
+                <div id="resultados-cliente" class="list-group position-absolute w-100 shadow" style="z-index:20"></div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Cliente de esta venta</label>
+                <input id="cliente-nombre" class="form-control" readonly placeholder="(ninguno seleccionado)" />
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header fw-semibold">2. Productos</div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5 position-relative">
+                    <label class="form-label">Buscar producto</label>
+                    <input id="buscar-producto" class="form-control" autocomplete="off" placeholder="Escriba parte del nombre..." />
+                    <div id="resultados-producto" class="list-group position-absolute w-100 shadow" style="z-index:20"></div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Precio</label>
+                    <div class="input-group">
+                        <input id="precio" class="form-control" readonly />
+                        <span class="input-group-text">Bs</span>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Cantidad</label>
+                    <input id="cantidad" type="number" min="1" value="1" class="form-control" />
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">Subtotal</label>
+                    <div id="subtotal-previo" class="form-control-plaintext fw-semibold">0 Bs</div>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" id="agregar" class="btn btn-success w-100">+ Agregar</button>
+                </div>
+            </div>
+            <div id="error-producto" class="text-danger small mt-2"></div>
+
+            <table class="table mt-3 mb-0">
+                <thead><tr><th>#</th><th>Producto</th><th class="text-end">Precio</th><th class="text-end">Cantidad</th><th class="text-end">Subtotal</th><th></th></tr></thead>
+                <tbody id="detalle"></tbody>
+            </table>
+            <div id="vacio" class="text-center text-muted bg-light py-2">Aún no agregó productos.</div>
+        </div>
+    </div>
+
+    <div class="row justify-content-end">
+        <div class="col-md-5">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">TOTAL A PAGAR</span>
+                        <span class="fs-4 fw-bold"><span id="total">0</span> Bs</span>
+                    </div>
+                    <label class="form-label mt-3">Monto recibido</label>
+                    <div class="input-group">
+                        <input asp-for="Recibido" id="Recibido" type="number" min="0" step="0.01" class="form-control" value="" />
+                        <span class="input-group-text">Bs</span>
+                    </div>
+                    <div id="mensaje-cambio" class="mt-2 fw-semibold"></div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Registrar venta</button>
+            <a class="btn btn-secondary" asp-action="Index">Cancelar</a>
+        </div>
+    </div>
+</form>
+
+<div class="modal fade" id="modal-cliente" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Registrar cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Nombre</label>
+                <input id="nc-nombre" class="form-control mb-2" />
+                <label class="form-label">Celular (opcional)</label>
+                <input id="nc-celular" class="form-control mb-2" />
+                <label class="form-label">Email (opcional)</label>
+                <input id="nc-email" type="email" class="form-control" />
+                <div id="nc-error" class="text-danger small mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="nc-guardar" class="btn btn-primary">Guardar y usar en la venta</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @* Respaldo: si el layout no carga bootstrap.js (falta wwwroot/lib), se usa el CDN *@
+    <script>
+        if (!window.bootstrap) document.write('<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"><\/script>');
+    </script>
+    <script>
+    (() => {
+        const productos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(productos));
+        const $ = id => document.getElementById(id);
+        const money = n => Number(n.toFixed(2)).toString();
+        const items = [];          // {id, nombre, precio, cantidad, stock}
+        let seleccionado = null;   // producto elegido en el buscador
+
+        $("fecha").value = new Date().toLocaleString("es-BO", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit", hour12:false });
+
+        // ---------- Cliente ----------
+        const setCliente = c => {
+            $("ClienteId").value = c.id;
+            $("cliente-nombre").value = c.nombre + (c.celular ? ` (${c.celular})` : "");
+            $("resultados-cliente").innerHTML = "";
+            $("buscar-cliente").value = "";
+        };
+        const buscarClientes = async () => {
+            const r = await fetch("/Ventas/BuscarClientes?q=" + encodeURIComponent($("buscar-cliente").value));
+            const lista = await r.json();
+            const box = $("resultados-cliente");
+            box.innerHTML = "";
+            if (!lista.length) { box.innerHTML = '<div class="list-group-item text-muted">Sin resultados. Use "Registrar cliente".</div>'; return lista; }
+            lista.forEach(c => {
+                const b = document.createElement("button");
+                b.type = "button"; b.className = "list-group-item list-group-item-action";
+                b.textContent = c.nombre + (c.celular ? ` (${c.celular})` : "");
+                b.onclick = () => setCliente({ id: c.id, nombre: c.nombre, celular: c.celular });
+                box.appendChild(b);
+            });
+            return lista;
+        };
+        $("buscar-cliente").addEventListener("input", buscarClientes);
+        $("buscar-cliente").addEventListener("keydown", async e => {
+            if (e.key === "Enter" || e.key === "Tab") {
+                if (e.key === "Enter") e.preventDefault();
+                const lista = await buscarClientes();
+                if (lista.length === 1) setCliente({ id: lista[0].id, nombre: lista[0].nombre, celular: lista[0].celular });
+            }
+        });
+        document.addEventListener("click", e => {
+            if (!e.target.closest("#resultados-cliente,#buscar-cliente")) $("resultados-cliente").innerHTML = "";
+            if (!e.target.closest("#resultados-producto,#buscar-producto")) $("resultados-producto").innerHTML = "";
+        });
+
+        const modal = () => bootstrap.Modal.getOrCreateInstance($("modal-cliente"));
+        $("abrir-modal-cliente").addEventListener("click", () => modal().show());
+
+        $("nc-guardar").addEventListener("click", async () => {
+            const r = await fetch("/Ventas/RegistrarCliente", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nombre: $("nc-nombre").value, celular: $("nc-celular").value, email: $("nc-email").value })
+            });
+            if (!r.ok) { $("nc-error").textContent = (await r.json()).error || "No se pudo guardar."; return; }
+            const c = await r.json();
+            setCliente({ id: c.id, nombre: c.nombre, celular: c.celular });
+            ["nc-nombre","nc-celular","nc-email","nc-error"].forEach(i => { $(i).value = ""; $(i).textContent = ""; });
+            modal().hide();
+        });
+        $("modal-cliente").addEventListener("shown.bs.modal", () => $("nc-nombre").focus());
+
+        // ---------- Producto ----------
+        const actualizarPrevio = () => {
+            const cant = parseInt($("cantidad").value) || 0;
+            $("subtotal-previo").textContent = `${money(seleccionado ? seleccionado.precio * cant : 0)} Bs`;
+        };
+        const elegirProducto = p => {
+            seleccionado = p;
+            $("buscar-producto").value = p.nombre;
+            $("precio").value = money(p.precio);
+            $("resultados-producto").innerHTML = "";
+            actualizarPrevio();
+            $("cantidad").focus(); $("cantidad").select();
+        };
+        const mostrarProductos = () => {
+            const q = $("buscar-producto").value.trim().toLowerCase();
+            seleccionado = null; $("precio").value = ""; actualizarPrevio();
+            const box = $("resultados-producto");
+            box.innerHTML = "";
+            productos.filter(p => p.nombre.toLowerCase().includes(q)).slice(0, 8).forEach(p => {
+                const b = document.createElement("button");
+                b.type = "button"; b.className = "list-group-item list-group-item-action d-flex justify-content-between";
+                b.innerHTML = `<span></span><small class="text-muted"></small>`;
+                b.children[0].textContent = p.nombre;
+                b.children[1].textContent = `${money(p.precio)} Bs · stock ${p.stock}`;
+                b.onclick = () => elegirProducto(p);
+                box.appendChild(b);
+            });
+        };
+        $("buscar-producto").addEventListener("input", mostrarProductos);
+        $("buscar-producto").addEventListener("focus", mostrarProductos);
+        $("cantidad").addEventListener("input", actualizarPrevio);
+
+        $("agregar").addEventListener("click", () => {
+            const err = $("error-producto"); err.textContent = "";
+            const cant = parseInt($("cantidad").value);
+            if (!seleccionado) { err.textContent = "Busque y seleccione un producto."; return; }
+            if (!cant || cant < 1) { err.textContent = "La cantidad debe ser mayor que cero."; return; }
+            const existente = items.find(i => i.id === seleccionado.id);
+            const total = (existente ? existente.cantidad : 0) + cant;
+            if (total > seleccionado.stock) { err.textContent = `Stock insuficiente (disponible: ${seleccionado.stock}).`; return; }
+            if (existente) existente.cantidad = total;
+            else items.push({ ...seleccionado, cantidad: cant });
+            seleccionado = null;
+            $("buscar-producto").value = ""; $("precio").value = ""; $("cantidad").value = 1;
+            actualizarPrevio(); render();
+            $("buscar-producto").focus();
+        });
+
+        // ---------- Tabla, total y cambio ----------
+        function render() {
+            const tb = $("detalle"); tb.innerHTML = "";
+            items.forEach((it, i) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td>${i + 1}
+                    <input type="hidden" name="Detalles[${i}].ProductoId" value="${it.id}">
+                    <input type="hidden" name="Detalles[${i}].Cantidad" value="${it.cantidad}"></td>
+                    <td></td>                    <td class="text-end">${money(it.precio)} Bs</td><td class="text-end">${it.cantidad}</td>
+                    <td class="text-end">${money(it.precio * it.cantidad)} Bs</td>
+                    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger">Quitar</button></td>`;
+                tr.children[1].textContent = it.nombre;
+                tr.querySelector("button").onclick = () => { items.splice(i, 1); render(); };
+                tb.appendChild(tr);
+            });
+            $("vacio").style.display = items.length ? "none" : "";
+            $("total").textContent = money(total());
+            cambio();
+        }
+        const total = () => items.reduce((s, i) => s + i.precio * i.cantidad, 0);
+        function cambio() {
+            const m = $("mensaje-cambio"), t = total(), r = parseFloat($("Recibido").value);
+            if (isNaN(r) || t === 0) { m.textContent = ""; return; }
+            const dif = Math.round((r - t) * 100) / 100;
+            if (dif < 0) { m.className = "mt-2 fw-semibold text-danger"; m.textContent = `Faltan: ${money(-dif)} Bs`; }
+            else if (dif === 0) { m.className = "mt-2 fw-semibold text-success"; m.textContent = "Monto exacto, sin cambio."; }
+            else { m.className = "mt-2 fw-semibold text-primary"; m.textContent = `Cambio: ${money(dif)} Bs`; }
+        }
+        $("Recibido").addEventListener("input", cambio);
+
+        $("form-venta").addEventListener("submit", e => {
+            let msg = "";
+            if (!$("ClienteId").value) msg = "Seleccione o registre un cliente.";
+            else if (!items.length) msg = "Agregue al menos un producto.";
+            else if ((parseFloat($("Recibido").value) || 0) < total()) msg = "El monto recibido no cubre el total.";
+            if (msg) { e.preventDefault(); alert(msg); }
+        });
+
+        render();
+    })();
+    </script>
+}

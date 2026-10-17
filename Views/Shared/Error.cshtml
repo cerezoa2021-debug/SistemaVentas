@@ -1,0 +1,20 @@
+﻿@{
+    ViewData["Title"] = "Error";
+}
+
+<h1 class="text-danger">Se produjo un error.</h1>
+<h2 class="text-danger">Ocurrió un problema al procesar tu solicitud.</h2>
+
+<p>
+    <strong>Identificador de solicitud:</strong> <code>@Context.TraceIdentifier</code>
+</p>
+
+<h3>Modo de desarrollo</h3>
+<p>
+    El entorno <strong>Development</strong> muestra información más detallada sobre el error.
+</p>
+<p>
+    <strong>No habilites el entorno Development en aplicaciones publicadas.</strong>
+    Podría exponer información sensible de las excepciones. Para depurar localmente, establece la variable
+    <strong>ASPNETCORE_ENVIRONMENT</strong> en <strong>Development</strong> y reinicia la aplicación.
+</p>
