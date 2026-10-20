@@ -1,10 +1,235 @@
+@using System.Globalization
+@model DashboardViewModel
 @{
-    ViewData["Title"]="Inicio";
+    ViewData["Title"] = "Dashboard";
+    var months = new[] { "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic" };
+    var maxMonthlySales = Model.MonthlySales.Max(month => month.Amount);
+    var totalCategorySales = Model.SalesByCategory.Sum(category => category.Amount);
 }
 
-<div class="p-5 mb-4 bg-ligth rounded-3">
-    <h1 class="display-6">Sistema Web de Ventas</h1>
-    <p class="lead">Programacion WEB II</p>
-    <a class="btn btn-primary" asp-controller="Productos" asp-action="Index">Ver Productos</a>
-    <a class="btn btn-outline-secondary" asp-controller="Categorias" asp-action="Index">Ver Categorias</a>
+<div class="dashboard">
+    <div class="dashboard-heading">
+        <div>
+            <span class="dashboard-eyebrow">PANEL DE CONTROL</span>
+            <h1>Resumen general</h1>
+            <p>Esto es lo que sucede en tu negocio hoy, @Model.Today.ToString("dd 'de' MMMM", CultureInfo.GetCultureInfo("es")).</p>
+        </div>
+        <a class="dashboard-primary-button" asp-controller="Ventas" asp-action="Create">
+            <span aria-hidden="true">＋</span> Nueva venta
+        </a>
+    </div>
+
+    <section class="metric-grid" aria-label="Resumen de ventas">
+        <article class="metric-card metric-card-blue">
+            <div class="metric-topline">
+                <span class="metric-label">Ventas de hoy</span>
+                <span class="metric-icon" aria-hidden="true">↗</span>
+            </div>
+            <strong class="metric-value">@Model.TodaySalesAmount.ToString("N2") <small>Bs</small></strong>
+            <span class="metric-caption">@Model.TodaySalesCount ventas realizadas</span>
+        </article>
+        <article class="metric-card metric-card-violet">
+            <div class="metric-topline">
+                <span class="metric-label">Ventas realizadas</span>
+                <span class="metric-icon" aria-hidden="true">▤</span>
+            </div>
+            <strong class="metric-value">@Model.TotalSalesAmount.ToString("N2") <small>Bs</small></strong>
+            <span class="metric-caption">@Model.TotalSalesCount ventas vigentes</span>
+        </article>
+        <article class="metric-card metric-card-green">
+            <div class="metric-topline">
+                <span class="metric-label">Ventas del mes</span>
+                <span class="metric-icon" aria-hidden="true">▦</span>
+            </div>
+            <strong class="metric-value">@Model.MonthSalesAmount.ToString("N2") <small>Bs</small></strong>
+            <span class="metric-caption">@Model.MonthSalesCount ventas en @Model.Today.ToString("MMMM", CultureInfo.GetCultureInfo("es"))</span>
+        </article>
+        <article class="metric-card metric-card-orange">
+            <div class="metric-topline">
+                <span class="metric-label">Clientes registrados</span>
+                <span class="metric-icon" aria-hidden="true">♧</span>
+            </div>
+            <strong class="metric-value">@Model.RegisteredClients</strong>
+            <span class="metric-caption">Clientes en tu negocio</span>
+        </article>
+    </section>
+
+    <section class="dashboard-grid dashboard-grid-charts">
+        <article class="dashboard-panel">
+            <div class="panel-heading">
+                <div>
+                    <h2>Ventas por año</h2>
+                    <p>Ingresos mensuales durante @Model.SelectedYear</p>
+                </div>
+                <span class="panel-tag">@Model.SelectedYear</span>
+            </div>
+            <div class="sales-chart" role="img" aria-label="Ventas mensuales de @Model.SelectedYear">
+                @foreach (var month in Model.MonthlySales)
+                {
+                    var height = maxMonthlySales > 0 ? (double)(month.Amount / maxMonthlySales * 100) : 0;
+                    <div class="chart-column" title="@months[month.Month - 1]: @month.Amount.ToString("N2") Bs">
+                        <span class="chart-value">@(month.Amount > 0 ? month.Amount.ToString("N0") : "")</span>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar @(month.Month == Model.Today.Month ? "chart-bar-current" : "")"
+                                 style="height: @(height.ToString("0.#", CultureInfo.InvariantCulture))%"></div>
+                        </div>
+                        <span class="chart-label">@months[month.Month - 1]</span>
+                    </div>
+                }
+            </div>
+            <div class="chart-summary">
+                <span>Promedio mensual del año</span>
+                <strong>@Model.AverageMonthlySales.ToString("N2") Bs</strong>
+            </div>
+        </article>
+
+        <article class="dashboard-panel">
+            <div class="panel-heading">
+                <div>
+                    <h2>Ventas por categoría</h2>
+                    <p>Distribución de ingresos por categoría</p>
+                </div>
+                <span class="panel-tag">@Model.SalesByCategory.Count categorías</span>
+            </div>
+            @if (Model.SalesByCategory.Count == 0)
+            {
+                <div class="empty-state">Aún no hay ventas para mostrar por categoría.</div>
+            }
+            else
+            {
+                <div class="category-list">
+                    @foreach (var category in Model.SalesByCategory)
+                    {
+                        var share = totalCategorySales > 0 ? (double)(category.Amount / totalCategorySales * 100) : 0;
+                        <div class="category-item">
+                            <div class="category-item-heading">
+                                <span>@category.Name</span>
+                                <strong>@category.Amount.ToString("N2") Bs</strong>
+                            </div>
+                            <div class="category-track">
+                                <div class="category-fill" style="width: @(share.ToString("0.#", CultureInfo.InvariantCulture))%"></div>
+                            </div>
+                            <span class="category-share">@share.ToString("0")% de las ventas</span>
+                        </div>
+                    }
+                </div>
+            }
+        </article>
+    </section>
+
+    <section class="dashboard-grid dashboard-grid-lists">
+        <article class="dashboard-panel">
+            <div class="panel-heading">
+                <div>
+                    <h2>Productos más vendidos</h2>
+                    <p>Los productos con más unidades vendidas</p>
+                </div>
+                <a class="panel-link" asp-controller="Productos" asp-action="Index">Ver productos <span aria-hidden="true">→</span></a>
+            </div>
+            @if (Model.BestSellingProducts.Count == 0)
+            {
+                <div class="empty-state">Aún no hay productos vendidos.</div>
+            }
+            else
+            {
+                <div class="ranked-list">
+                    @for (var i = 0; i < Model.BestSellingProducts.Count; i++)
+                    {
+                        var product = Model.BestSellingProducts[i];
+                        <div class="ranked-item">
+                            <span class="rank-number">@(i + 1)</span>
+                            <div class="rank-product">
+                                <strong>@product.Name</strong>
+                                <span>Unidades vendidas</span>
+                            </div>
+                            <span class="rank-quantity">@product.Quantity</span>
+                        </div>
+                    }
+                </div>
+            }
+        </article>
+
+        <article class="dashboard-panel">
+            <div class="panel-heading">
+                <div>
+                    <h2>Stock bajo</h2>
+                    <p>Productos en su stock mínimo o por debajo</p>
+                </div>
+                <a class="panel-link" asp-controller="Productos" asp-action="Index">Ver inventario <span aria-hidden="true">→</span></a>
+            </div>
+            @if (Model.LowStockProducts.Count == 0)
+            {
+                <div class="empty-state stock-ok">Todo bien: no hay productos con stock bajo.</div>
+            }
+            else
+            {
+                <div class="ranked-list">
+                    @foreach (var product in Model.LowStockProducts)
+                    {
+                        <div class="ranked-item">
+                            <span class="stock-indicator" aria-hidden="true"></span>
+                            <div class="rank-product">
+                                <strong>@product.Nombre</strong>
+                                <span>@(product.Categoria?.Nombre ?? "Sin categoría") · mínimo @product.StockMinimo</span>
+                            </div>
+                            <span class="stock-quantity">@product.Stock <small>uds.</small></span>
+                        </div>
+                    }
+                </div>
+            }
+        </article>
+    </section>
+
+    <section class="dashboard-panel recent-panel">
+        <div class="panel-heading">
+            <div>
+                <h2>Últimas ventas</h2>
+                <p>Actividad reciente de tu negocio</p>
+            </div>
+            <a class="panel-link" asp-controller="Ventas" asp-action="Index">Ver todas <span aria-hidden="true">→</span></a>
+        </div>
+        @if (Model.RecentSales.Count == 0)
+        {
+            <div class="empty-state">Todavía no hay ventas registradas.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="recent-table">
+                    <thead>
+                        <tr>
+                            <th>Venta</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th class="text-end">Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var sale in Model.RecentSales)
+                        {
+                            <tr>
+                                <td><span class="sale-id">#@sale.Id</span></td>
+                                <td>@(sale.Cliente?.Nombre ?? "Cliente no disponible")</td>
+                                <td>@sale.Fecha.ToString("dd/MM/yyyy · HH:mm")</td>
+                                <td>
+                                    @if (sale.Anulada)
+                                    {
+                                        <span class="sale-status sale-status-cancelled">Anulada</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="sale-status sale-status-valid">Vigente</span>
+                                    }
+                                </td>
+                                <td class="text-end sale-total">@sale.Total.ToString("N2") Bs</td>
+                                <td class="text-end"><a class="sale-detail-link" asp-controller="Ventas" asp-action="Details" asp-route-id="@sale.Id" aria-label="Ver venta @sale.Id">→</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
 </div>

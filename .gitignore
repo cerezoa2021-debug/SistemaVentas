@@ -484,3 +484,4 @@ $RECYCLE.BIN/
 ventas.db
 appsettings.Development.json
 .env
+publish/
