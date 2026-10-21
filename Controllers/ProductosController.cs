@@ -37,9 +37,6 @@ public class ProductosController : Controller
     [HttpPost]
     public async Task<IActionResult> Create(Producto producto)
     {
-        if (producto.Precio < 0 || producto.Stock < 0 || producto.StockMinimo < 0)
-            ModelState.AddModelError("", "El precio y las cantidades de stock no pueden ser negativos.");
-
         if (!await _context.Categorias.AnyAsync(c => c.Id == producto.CategoriaId))
             ModelState.AddModelError(nameof(producto.CategoriaId), "Selecciona una categoría válida.");
 
@@ -69,9 +66,6 @@ public class ProductosController : Controller
     public async Task<IActionResult> Edit(int id, Producto producto)
     {
         if (id != producto.Id) return NotFound();
-
-        if (producto.Precio < 0 || producto.Stock < 0 || producto.StockMinimo < 0)
-            ModelState.AddModelError("", "El precio y las cantidades de stock no pueden ser negativos.");
 
         if (!await _context.Categorias.AnyAsync(c => c.Id == producto.CategoriaId))
             ModelState.AddModelError(nameof(producto.CategoriaId), "Selecciona una categoría válida.");

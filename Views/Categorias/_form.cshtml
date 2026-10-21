@@ -2,10 +2,11 @@
 @model Categoria
 
 <input type="hidden" asp-for="Id">
+<div asp-validation-summary="All" class="text-danger mb-3"></div>
 
 <div class="mb-3">
     <label asp-for="Nombre" class="form-label"></label>
-    <input asp-for="Nombre" class="form-control"/>
+    <input asp-for="Nombre" class="form-control" required maxlength="80" inputmode="text" oninput="this.value = this.value.replace(/[0-9]/g, '')" />
     <span asp-validation-for="Nombre" class="text-danger"></span>
 </div>
 

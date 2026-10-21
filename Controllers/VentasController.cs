@@ -53,6 +53,16 @@ public class VentasController : Controller
             Celular = string.IsNullOrWhiteSpace(datos.Celular) ? null : datos.Celular.Trim(),
             Email = string.IsNullOrWhiteSpace(datos.Email) ? null : datos.Email.Trim()
         };
+
+        if (!TryValidateModel(cliente))
+        {
+            var error = ModelState.Values
+                .SelectMany(value => value.Errors)
+                .Select(value => value.ErrorMessage)
+                .FirstOrDefault(message => !string.IsNullOrWhiteSpace(message));
+            return BadRequest(new { error = error ?? "Los datos del cliente no son válidos." });
+        }
+
         _context.Clientes.Add(cliente);
         await _context.SaveChangesAsync();
         return Json(new { cliente.Id, cliente.Nombre, cliente.Celular });
@@ -99,12 +109,15 @@ public class VentasController : Controller
             productos[producto.Id] = producto;
         }
 
-        foreach (var detalle in venta.Detalles)
+        for (var i = 0; i < venta.Detalles.Count; i++)
         {
+            var detalle = venta.Detalles[i];
             if (productos.TryGetValue(detalle.ProductoId, out var producto))
             {
                 detalle.Precio = producto.Precio;
                 detalle.CalcularSubtotal();
+                ModelState.Remove($"Detalles[{i}].Precio");
+                ModelState.Remove($"Detalles[{i}].Subtotal");
             }
         }
 

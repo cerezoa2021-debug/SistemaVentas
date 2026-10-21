@@ -5,6 +5,10 @@
 }
 
 <h2>Nuevo producto</h2>
-<form asp-action="Create" method="post">
+<form asp-action="Create" method="post" novalidate>
     <partial name="_form" model="Model" />
 </form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

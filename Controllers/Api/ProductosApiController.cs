@@ -46,9 +46,6 @@ public class ProductosApiController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Producto>> Create(Producto producto)
     {
-        if (producto.Precio < 0 || producto.Stock < 0 || producto.StockMinimo < 0)
-            return BadRequest("El precio y los stocks no pueden ser negativos");
-
         if (!await _context.Categorias.AnyAsync(c => c.Id == producto.CategoriaId))
             return BadRequest("La categoría indicada no existe");
 
@@ -69,9 +66,6 @@ public class ProductosApiController : ControllerBase
     {
         if (id != producto.Id)
             return BadRequest("El Id de la URL no coincide con el del cuerpo");
-
-        if (producto.Precio < 0 || producto.Stock < 0 || producto.StockMinimo < 0)
-            return BadRequest("El precio y los stocks no pueden ser negativos");
 
         if (!await _context.Productos.AnyAsync(p => p.Id == id))
             return NotFound();

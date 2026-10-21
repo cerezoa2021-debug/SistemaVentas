@@ -38,8 +38,18 @@ public class CategoriasApiController: ControllerBase
     [HttpPost]
     public async Task<ActionResult<Categoria>> Create(Categoria categoria)
     {
+        if (await _context.Categorias.AnyAsync(c => c.Nombre == categoria.Nombre))
+            return Conflict("Ya existe una categoría con ese nombre.");
+
         _context.Categorias.Add(categoria);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict("No se pudo guardar la categoría. Puede que ya exista otra con ese nombre.");
+        }
 
         return CreatedAtAction(nameof(GetById), new { id = categoria.Id }, categoria);
     }
@@ -55,8 +65,19 @@ public class CategoriasApiController: ControllerBase
         if (!await _context.Categorias.AnyAsync(c => c.Id == id))
             return NotFound();
 
+        if (await _context.Categorias.AnyAsync(c => c.Id != id && c.Nombre == categoria.Nombre))
+            return Conflict("Ya existe una categoría con ese nombre.");
+
         _context.Categorias.Update(categoria);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict("No se pudo guardar la categoría. Puede que ya exista otra con ese nombre.");
+        }
+
         return NoContent();
     }
 
@@ -72,7 +93,15 @@ public class CategoriasApiController: ControllerBase
             return Conflict("No se puede eliminar: la categoria tiene productos");
 
         _context.Categorias.Remove(categoria);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict("No se pudo eliminar la categoría porque tiene productos asociados.");
+        }
+
         return NoContent();
     }
 }

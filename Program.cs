@@ -21,7 +21,15 @@ CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.ModelBindingMessageProvider.SetValueMustBeANumberAccessor(
+        field => $"El campo {field} debe ser un número.");
+    options.ModelBindingMessageProvider.SetAttemptedValueIsInvalidAccessor(
+        (value, field) => $"El valor '{value}' no es válido para {field}.");
+    options.ModelBindingMessageProvider.SetValueIsInvalidAccessor(
+        value => $"El valor '{value}' no es válido.");
+});
 
 // 2) Base de datos. El proveedor se cambia SOLO en esta línea.
 //    Ahora: SQLite (archivo local). Ver README, sección "Conexión a Turso".
@@ -44,6 +52,8 @@ if (!app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseRouting();
 
+app.MapStaticAssets();
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

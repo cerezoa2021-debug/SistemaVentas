@@ -58,6 +58,18 @@ public class VentasApiController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Venta>> Create(Venta venta)
     {
+        venta.Id = 0;
+        venta.Cliente = null;
+        if (venta.Detalles != null)
+        {
+            foreach (var detalle in venta.Detalles)
+            {
+                detalle.Id = 0;
+                detalle.Venta = null;
+                detalle.Producto = null;
+            }
+        }
+
         if (!await _context.Clientes.AnyAsync(c => c.Id == venta.ClienteId))
             return BadRequest("El cliente indicado no existe");
 

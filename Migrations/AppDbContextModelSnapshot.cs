@@ -25,11 +25,20 @@ namespace SistemaVentas.Migrations
 
                     b.Property<string>("Nombre")
                         .IsRequired()
+                        .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categorias");
+                    b.HasIndex("Nombre")
+                        .IsUnique();
+
+                    b.ToTable("Categorias", t =>
+                        {
+                            t.HasCheckConstraint("CK_Categorias_Nombre_Format", "\"Nombre\" NOT GLOB '*[0-9]*'");
+
+                            t.HasCheckConstraint("CK_Categorias_Nombre_Length", "length(trim(\"Nombre\")) BETWEEN 1 AND 80");
+                        });
 
                     b.HasData(
                         new
@@ -56,18 +65,30 @@ namespace SistemaVentas.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Celular")
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Email")
+                        .HasMaxLength(254)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
+                        .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Clientes");
+                    b.ToTable("Clientes", t =>
+                        {
+                            t.HasCheckConstraint("CK_Clientes_Celular_Length", "\"Celular\" IS NULL OR (\"Celular\" NOT GLOB '*[^0-9]*' AND length(\"Celular\") BETWEEN 7 AND 8)");
+
+                            t.HasCheckConstraint("CK_Clientes_Email_Length", "\"Email\" IS NULL OR length(\"Email\") <= 254");
+
+                            t.HasCheckConstraint("CK_Clientes_Nombre_Format", "\"Nombre\" NOT GLOB '*[0-9]*'");
+
+                            t.HasCheckConstraint("CK_Clientes_Nombre_Length", "length(trim(\"Nombre\")) BETWEEN 1 AND 120");
+                        });
                 });
 
             modelBuilder.Entity("SistemaVentas.Models.DetalleVenta", b =>
@@ -97,7 +118,14 @@ namespace SistemaVentas.Migrations
 
                     b.HasIndex("VentaId");
 
-                    b.ToTable("DetallesVenta");
+                    b.ToTable("DetallesVenta", t =>
+                        {
+                            t.HasCheckConstraint("CK_DetallesVenta_Cantidad_Range", "\"Cantidad\" BETWEEN 1 AND 1000000");
+
+                            t.HasCheckConstraint("CK_DetallesVenta_Precio_Range", "CAST(\"Precio\" AS NUMERIC) BETWEEN 0 AND 99999999.99");
+
+                            t.HasCheckConstraint("CK_DetallesVenta_Subtotal_Range", "CAST(\"Subtotal\" AS NUMERIC) BETWEEN 0 AND 99999999.99");
+                        });
                 });
 
             modelBuilder.Entity("SistemaVentas.Models.Producto", b =>
@@ -111,6 +139,7 @@ namespace SistemaVentas.Migrations
 
                     b.Property<string>("Nombre")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("Precio")
@@ -126,7 +155,16 @@ namespace SistemaVentas.Migrations
 
                     b.HasIndex("CategoriaId");
 
-                    b.ToTable("Productos");
+                    b.ToTable("Productos", t =>
+                        {
+                            t.HasCheckConstraint("CK_Productos_Nombre_Length", "length(trim(\"Nombre\")) BETWEEN 1 AND 100");
+
+                            t.HasCheckConstraint("CK_Productos_Precio_Range", "CAST(\"Precio\" AS NUMERIC) BETWEEN 0 AND 99999999.99");
+
+                            t.HasCheckConstraint("CK_Productos_StockMinimo_Range", "\"StockMinimo\" BETWEEN 0 AND 1000000");
+
+                            t.HasCheckConstraint("CK_Productos_Stock_Range", "\"Stock\" BETWEEN 0 AND 1000000");
+                        });
 
                     b.HasData(
                         new
@@ -186,7 +224,14 @@ namespace SistemaVentas.Migrations
 
                     b.HasIndex("ClienteId");
 
-                    b.ToTable("Ventas");
+                    b.ToTable("Ventas", t =>
+                        {
+                            t.HasCheckConstraint("CK_Ventas_Cambio_Range", "CAST(\"Cambio\" AS NUMERIC) BETWEEN 0 AND 99999999.99");
+
+                            t.HasCheckConstraint("CK_Ventas_Recibido_Range", "CAST(\"Recibido\" AS NUMERIC) BETWEEN 0 AND 99999999.99");
+
+                            t.HasCheckConstraint("CK_Ventas_Total_Range", "CAST(\"Total\" AS NUMERIC) BETWEEN 0 AND 99999999.99");
+                        });
                 });
 
             modelBuilder.Entity("SistemaVentas.Models.DetalleVenta", b =>
@@ -194,7 +239,7 @@ namespace SistemaVentas.Migrations
                     b.HasOne("SistemaVentas.Models.Producto", "Producto")
                         .WithMany()
                         .HasForeignKey("ProductoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SistemaVentas.Models.Venta", "Venta")
@@ -213,7 +258,7 @@ namespace SistemaVentas.Migrations
                     b.HasOne("SistemaVentas.Models.Categoria", "Categoria")
                         .WithMany("Productos")
                         .HasForeignKey("CategoriaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Categoria");
@@ -224,7 +269,7 @@ namespace SistemaVentas.Migrations
                     b.HasOne("SistemaVentas.Models.Cliente", "Cliente")
                         .WithMany("Ventas")
                         .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Cliente");

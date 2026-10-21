@@ -32,8 +32,23 @@ public class CategoriasController : Controller
     {
         if (!ModelState.IsValid) return View(categoria);
 
+        if (await _context.Categorias.AnyAsync(c => c.Nombre == categoria.Nombre))
+        {
+            ModelState.AddModelError(nameof(categoria.Nombre), "Ya existe una categoría con ese nombre.");
+            return View(categoria);
+        }
+
         _context.Categorias.Add(categoria);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            ModelState.AddModelError(nameof(categoria.Nombre), "No se pudo guardar la categoría. Puede que ya exista otra con ese nombre.");
+            return View(categoria);
+        }
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -52,8 +67,23 @@ public class CategoriasController : Controller
         if (id != categoria.Id) return NotFound();
         if (!ModelState.IsValid) return View(categoria);
 
+        if (await _context.Categorias.AnyAsync(c => c.Id != id && c.Nombre == categoria.Nombre))
+        {
+            ModelState.AddModelError(nameof(categoria.Nombre), "Ya existe una categoría con ese nombre.");
+            return View(categoria);
+        }
+
         _context.Categorias.Update(categoria);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            ModelState.AddModelError(nameof(categoria.Nombre), "No se pudo guardar la categoría. Puede que ya exista otra con ese nombre.");
+            return View(categoria);
+        }
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -80,7 +110,15 @@ public class CategoriasController : Controller
                 return View(categoria);
             }
             _context.Categorias.Remove(categoria);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                ModelState.AddModelError("", "No se pudo eliminar la categoría porque tiene productos asociados.");
+                return View(categoria);
+            }
         }
         return RedirectToAction(nameof(Index));
     }

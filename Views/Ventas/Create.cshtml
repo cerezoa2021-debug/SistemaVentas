@@ -53,7 +53,7 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Cantidad</label>
-                    <input id="cantidad" type="number" min="1" value="1" class="form-control" />
+                    <input id="cantidad" type="number" min="1" max="1000000" step="1" value="1" class="form-control" required />
                 </div>
                 <div class="col-md-1">
                     <label class="form-label">Subtotal</label>
@@ -83,7 +83,7 @@
                     </div>
                     <label class="form-label mt-3">Monto recibido</label>
                     <div class="input-group">
-                        <input asp-for="Recibido" id="Recibido" type="number" min="0" step="0.01" class="form-control" value="" />
+                        <input asp-for="Recibido" id="Recibido" type="number" min="0" max="99999999.99" step="0.01" class="form-control" value="" required />
                         <span class="input-group-text">Bs</span>
                     </div>
                     <div id="mensaje-cambio" class="mt-2 fw-semibold"></div>
@@ -104,11 +104,11 @@
             </div>
             <div class="modal-body">
                 <label class="form-label">Nombre</label>
-                <input id="nc-nombre" class="form-control mb-2" />
+                <input id="nc-nombre" class="form-control mb-2" required maxlength="120" />
                 <label class="form-label">Celular (opcional)</label>
-                <input id="nc-celular" class="form-control mb-2" />
+                <input id="nc-celular" type="tel" class="form-control mb-2" maxlength="20" />
                 <label class="form-label">Email (opcional)</label>
-                <input id="nc-email" type="email" class="form-control" />
+                <input id="nc-email" type="email" class="form-control" maxlength="254" />
                 <div id="nc-error" class="text-danger small mt-2"></div>
             </div>
             <div class="modal-footer">
@@ -173,6 +173,11 @@
         $("abrir-modal-cliente").addEventListener("click", () => modal().show());
 
         $("nc-guardar").addEventListener("click", async () => {
+            const nombre = $("nc-nombre");
+            const celular = $("nc-celular");
+            const email = $("nc-email");
+            if (!nombre.reportValidity() || !celular.reportValidity() || !email.reportValidity()) return;
+
             const r = await fetch("/Ventas/RegistrarCliente", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ nombre: $("nc-nombre").value, celular: $("nc-celular").value, email: $("nc-email").value })
@@ -192,6 +197,7 @@
         };
         const elegirProducto = p => {
             seleccionado = p;
+            $("cantidad").max = Math.min(1000000, p.stock);
             $("buscar-producto").value = p.nombre;
             $("precio").value = money(p.precio);
             $("resultados-producto").innerHTML = "";
@@ -222,6 +228,7 @@
             const cant = parseInt($("cantidad").value);
             if (!seleccionado) { err.textContent = "Busque y seleccione un producto."; return; }
             if (!cant || cant < 1) { err.textContent = "La cantidad debe ser mayor que cero."; return; }
+            if (cant > 1000000) { err.textContent = "La cantidad no puede superar 1,000,000."; return; }
             const existente = items.find(i => i.id === seleccionado.id);
             const total = (existente ? existente.cantidad : 0) + cant;
             if (total > seleccionado.stock) { err.textContent = `Stock insuficiente (disponible: ${seleccionado.stock}).`; return; }

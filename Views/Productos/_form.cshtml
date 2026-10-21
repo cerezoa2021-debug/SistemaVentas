@@ -7,13 +7,13 @@
 
 <div class="mb-3">
     <label asp-for="Nombre" class="form-label">Nombre</label>
-    <input asp-for="Nombre" class="form-control" />
+    <input asp-for="Nombre" class="form-control" required maxlength="100" />
     <span asp-validation-for="Nombre" class="text-danger"></span>
 </div>
 
 <div class="mb-3">
     <label asp-for="CategoriaId" class="form-label">Categoría</label>
-    <select asp-for="CategoriaId" asp-items="ViewBag.CategoriaId" class="form-select">
+    <select asp-for="CategoriaId" asp-items="ViewBag.CategoriaId" class="form-select" required>
         <option value="">Selecciona una categoría</option>
     </select>
     <span asp-validation-for="CategoriaId" class="text-danger"></span>
@@ -22,7 +22,7 @@
 <div class="mb-3">
     <label asp-for="Precio" class="form-label">Precio</label>
     <div class="input-group">
-        <input asp-for="Precio" type="number" min="0" step="0.01" class="form-control" />
+        <input asp-for="Precio" type="number" min="0" max="99999999.99" step="0.01" class="form-control" required />
         <span class="input-group-text">Bs</span>
     </div>
     <span asp-validation-for="Precio" class="text-danger"></span>
@@ -30,13 +30,13 @@
 
 <div class="mb-3">
     <label asp-for="Stock" class="form-label">Stock</label>
-    <input asp-for="Stock" type="number" min="0" class="form-control" />
+    <input asp-for="Stock" type="number" min="0" max="1000000" step="1" class="form-control" required />
     <span asp-validation-for="Stock" class="text-danger"></span>
 </div>
 
 <div class="mb-3">
     <label asp-for="StockMinimo" class="form-label">Stock mínimo</label>
-    <input asp-for="StockMinimo" type="number" min="0" class="form-control" />
+    <input asp-for="StockMinimo" type="number" min="0" max="1000000" step="1" class="form-control" required />
     <span asp-validation-for="StockMinimo" class="text-danger"></span>
 </div>
 
