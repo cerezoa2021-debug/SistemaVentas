@@ -1,0 +1,47 @@
+@model SistemaVentas.Models.StockAlertsViewModel
+
+<li class="nav-item stock-alert-nav-item">
+    <details class="stock-alert-dropdown">
+        <summary class="nav-link stock-alert-toggle" aria-label="Alertas de stock: @Model.Count productos">
+            <span class="stock-alert-bell" aria-hidden="true">&#128276;</span>
+            <span class="stock-alert-label">Alertas</span>
+            @if (Model.Count > 0)
+            {
+                <span class="stock-alert-count">@Model.Count</span>
+            }
+        </summary>
+        <div class="stock-alert-menu">
+            <div class="stock-alert-menu-heading">
+                <strong>Stock bajo</strong>
+                <span>@Model.Count @(Model.Count == 1 ? "producto" : "productos")</span>
+            </div>
+            @if (Model.Products.Count == 0)
+            {
+                <p class="stock-alert-empty">No hay productos por reponer.</p>
+            }
+            else
+            {
+                <div class="stock-alert-list">
+                    @foreach (var product in Model.Products)
+                    {
+                        <div class="stock-alert-item">
+                            <div class="stock-alert-product">
+                                <strong>@product.Nombre</strong>
+                                <span>Quedan @product.Stock · mínimo @product.StockMinimo</span>
+                            </div>
+                            <a class="stock-alert-restock"
+                               asp-controller="Productos"
+                               asp-action="Reponer"
+                               asp-route-id="@product.Id">Reponer</a>
+                        </div>
+                    }
+                </div>
+                @if (Model.Count > Model.Products.Count)
+                {
+                    <p class="stock-alert-more">Se muestran @Model.Products.Count de @Model.Count alertas.</p>
+                }
+            }
+            <a class="stock-alert-inventory" asp-controller="Productos" asp-action="Index">Ver inventario</a>
+        </div>
+    </details>
+</li>

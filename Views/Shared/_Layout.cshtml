@@ -33,6 +33,7 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-controller="Ventas" asp-action="Index">Ventas</a>
                         </li>
+                        @await Component.InvokeAsync("StockAlerts")
                     </ul>
                 </div>
             </div>
@@ -50,5 +51,6 @@
         </div>
     </footer>
     @await RenderSectionAsync("Scripts", required: false)
+    <script src="~/js/site.js" asp-append-version="true"></script>
 </body>
 </html>

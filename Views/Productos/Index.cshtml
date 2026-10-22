@@ -9,6 +9,14 @@
     <a class="btn btn-success" asp-action="Create">Nuevo producto</a>
 </div>
 
+@if (TempData["Success"] is string successMessage)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @successMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+}
+
 <table class="table table-striped">
     <thead>
         <tr>
@@ -32,6 +40,7 @@
                 <td>@producto.Stock</td>
                 <td>@producto.StockMinimo</td>
                 <td class="text-end">
+                    <a class="btn btn-sm btn-success" asp-action="Reponer" asp-route-id="@producto.Id">Reponer</a>
                     <a class="btn btn-sm btn-warning" asp-action="Edit" asp-route-id="@producto.Id">Editar</a>
                     <a class="btn btn-sm btn-danger" asp-action="Delete" asp-route-id="@producto.Id">Eliminar</a>
                 </td>

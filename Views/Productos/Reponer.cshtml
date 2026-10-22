@@ -1,0 +1,29 @@
+@model SistemaVentas.Models.ReponerProductoViewModel
+@{
+    ViewData["Title"] = "Reponer producto";
+}
+
+<div class="restock-page">
+    <div class="restock-card">
+        <span class="restock-eyebrow">INVENTARIO</span>
+        <h1>Reponer producto</h1>
+        <p class="restock-description">Añade unidades al stock actual de <strong>@Model.NombreProducto</strong>.</p>
+
+        <div class="restock-current-stock">
+            <span>Stock actual</span>
+            <strong>@Model.StockActual <small>unidades</small></strong>
+        </div>
+
+        <form asp-action="Reponer" method="post">
+            <input asp-for="ProductoId" type="hidden" />
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <div class="mb-4">
+                <label asp-for="Cantidad" class="form-label">Cantidad a reponer</label>
+                <input asp-for="Cantidad" type="number" min="1" max="1000000" step="1" class="form-control" required autofocus />
+                <span asp-validation-for="Cantidad" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">Confirmar reposición</button>
+            <a class="btn btn-outline-secondary ms-2" asp-action="Index">Cancelar</a>
+        </form>
+    </div>
+</div>

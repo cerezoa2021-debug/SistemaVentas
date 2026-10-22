@@ -67,6 +67,159 @@ body {
     color: #4f61dc !important;
 }
 
+.stock-alert-nav-item {
+    margin-left: auto;
+}
+
+.stock-alert-dropdown {
+    position: relative;
+}
+
+.stock-alert-toggle {
+    display: flex;
+    min-height: 40px;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.stock-alert-toggle::-webkit-details-marker {
+    display: none;
+}
+
+.stock-alert-bell {
+    font-size: 1.05rem;
+}
+
+.stock-alert-label {
+    color: #566276;
+    font-size: .82rem;
+}
+
+.stock-alert-count {
+    display: inline-grid;
+    min-width: 20px;
+    height: 20px;
+    place-items: center;
+    padding: 0 5px;
+    border-radius: 12px;
+    background: #e65361;
+    color: #fff;
+    font-size: .67rem;
+    font-weight: 750;
+}
+
+.stock-alert-menu {
+    position: absolute;
+    z-index: 1050;
+    top: calc(100% + 7px);
+    right: 0;
+    width: min(360px, calc(100vw - 30px));
+    overflow: hidden;
+    border: 1px solid #e7eaf0;
+    border-radius: 13px;
+    background: #fff;
+    box-shadow: 0 14px 36px #1d2c451f;
+}
+
+.stock-alert-menu-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.stock-alert-menu-heading strong {
+    color: #273347;
+    font-size: .9rem;
+}
+
+.stock-alert-menu-heading span,
+.stock-alert-more {
+    color: #8791a0;
+    font-size: .72rem;
+}
+
+.stock-alert-list {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.stock-alert-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 16px;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.stock-alert-product {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+}
+
+.stock-alert-product strong {
+    overflow: hidden;
+    color: #344054;
+    font-size: .78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stock-alert-product span {
+    color: #8a94a3;
+    font-size: .68rem;
+}
+
+.stock-alert-restock {
+    flex: 0 0 auto;
+    padding: 6px 9px;
+    border-radius: 7px;
+    background: #eaf7f0;
+    color: #21845c;
+    font-size: .7rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.stock-alert-restock:hover {
+    background: #d9f0e3;
+    color: #176d49;
+}
+
+.stock-alert-empty {
+    margin: 0;
+    padding: 18px 16px;
+    color: #728093;
+    font-size: .78rem;
+}
+
+.stock-alert-more {
+    margin: 0;
+    padding: 9px 16px 0;
+}
+
+.stock-alert-inventory {
+    display: block;
+    padding: 12px 16px;
+    background: #f7f8ff;
+    color: #5868e8;
+    font-size: .75rem;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+}
+
+.stock-alert-inventory:hover {
+    background: #eef0ff;
+    color: #394bc9;
+}
+
 .container {
     width: min(100% - 40px, 1240px);
     margin: 0 auto;
@@ -114,6 +267,15 @@ body {
 
     .navbar-nav {
         flex-wrap: wrap;
+    }
+
+    .stock-alert-nav-item {
+        margin-left: 0;
+    }
+
+    .stock-alert-menu {
+        right: auto;
+        left: 0;
     }
 
     .nav-link {

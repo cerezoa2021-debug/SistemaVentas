@@ -166,13 +166,17 @@
                 <div class="ranked-list">
                     @foreach (var product in Model.LowStockProducts)
                     {
-                        <div class="ranked-item">
+                        <div class="ranked-item stock-ranked-item">
                             <span class="stock-indicator" aria-hidden="true"></span>
                             <div class="rank-product">
                                 <strong>@product.Nombre</strong>
                                 <span>@(product.Categoria?.Nombre ?? "Sin categoría") · mínimo @product.StockMinimo</span>
                             </div>
                             <span class="stock-quantity">@product.Stock <small>uds.</small></span>
+                            <a class="stock-restock-button"
+                               asp-controller="Productos"
+                               asp-action="Reponer"
+                               asp-route-id="@product.Id">Reponer</a>
                         </div>
                     }
                 </div>

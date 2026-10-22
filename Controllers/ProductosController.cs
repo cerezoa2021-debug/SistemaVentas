@@ -81,6 +81,50 @@ public class ProductosController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // GET: /Productos/Reponer/5
+    [HttpGet]
+    public async Task<IActionResult> Reponer(int id)
+    {
+        var producto = await _context.Productos.FindAsync(id);
+        if (producto == null) return NotFound();
+
+        return View(new ReponerProductoViewModel
+        {
+            ProductoId = producto.Id,
+            NombreProducto = producto.Nombre,
+            StockActual = producto.Stock
+        });
+    }
+
+    // POST: /Productos/Reponer
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Reponer(ReponerProductoViewModel model)
+    {
+        var producto = await _context.Productos.FindAsync(model.ProductoId);
+        if (producto == null) return NotFound();
+
+        if (producto.Stock + (long)model.Cantidad > 1_000_000)
+        {
+            ModelState.AddModelError(
+                nameof(model.Cantidad),
+                "La reposición no puede dejar el stock por encima de 1,000,000 unidades.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            model.NombreProducto = producto.Nombre;
+            model.StockActual = producto.Stock;
+            return View(model);
+        }
+
+        producto.Stock += model.Cantidad;
+        await _context.SaveChangesAsync();
+
+        TempData["Success"] = $"Se repusieron {model.Cantidad} unidades de {producto.Nombre}.";
+        return RedirectToAction(nameof(Index));
+    }
+
     // GET: /Productos/Delete/5
     public async Task<IActionResult> Delete(int id)
     {
