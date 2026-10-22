@@ -6,7 +6,7 @@ public class Cliente
     public int Id {get; set; }
 
     [Required(ErrorMessage = "El nombre es obligatorio.")]
-    [StringLength(120, MinimumLength = 1, ErrorMessage = "El nombre no puede superar 120 caracteres.")]
+    [StringLength(120, MinimumLength = 3, ErrorMessage = "El nombre debe tener entre 3 y 120 caracteres.")]
     [RegularExpression(Reglas.Letras, ErrorMessage = "El nombre solo puede contener letras, espacios, puntos, apóstrofes y guiones.")]
     public string Nombre{get; set; } = string.Empty;
 

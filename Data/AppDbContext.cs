@@ -45,7 +45,7 @@ public class AppDbContext : DbContext
             {
                 table.HasCheckConstraint(
                     "CK_Clientes_Nombre_Length",
-                    "length(trim(\"Nombre\")) BETWEEN 1 AND 120");
+                    "length(trim(\"Nombre\")) BETWEEN 3 AND 120");
                 table.HasCheckConstraint(
                     "CK_Clientes_Nombre_Format",
                     "\"Nombre\" NOT GLOB '*[0-9]*'");

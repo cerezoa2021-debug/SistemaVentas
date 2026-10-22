@@ -6,7 +6,7 @@
 
 <div class="mb-3">
     <label asp-for="Nombre" class="form-label">Nombre</label>
-    <input asp-for="Nombre" class="form-control" required maxlength="120" inputmode="text" oninput="this.value = this.value.replace(/[0-9]/g, '')" />
+    <input asp-for="Nombre" class="form-control" required minlength="3" maxlength="120" inputmode="text" oninput="this.value = this.value.replace(/[0-9]/g, '')" />
     <span asp-validation-for="Nombre" class="text-danger"></span>
 </div>
 
