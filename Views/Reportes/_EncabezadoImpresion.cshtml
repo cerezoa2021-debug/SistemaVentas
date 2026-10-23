@@ -1,0 +1,23 @@
+@model ReportPrintHeaderViewModel
+@using System.Globalization
+@{
+    var cultura = CultureInfo.GetCultureInfo("es");
+}
+<header class="report-print-header">
+    <div class="print-brand"><i class="bi bi-shop-window" aria-hidden="true"></i><strong>Sistema de Ventas</strong></div>
+    <div>
+        @if (Model.Desde.HasValue && Model.Hasta.HasValue)
+        {
+            <p>Periodo: @Model.Desde.Value.ToString("dd/MM/yyyy") al @Model.Hasta.Value.ToString("dd/MM/yyyy")</p>
+        }
+        else
+        {
+            <p>Reporte al @Model.Emitido.ToString("dd/MM/yyyy", cultura)</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.FiltrosAplicados))
+        {
+            <p>@Model.FiltrosAplicados</p>
+        }
+        <p>Emitido: @Model.Emitido.ToString("dd/MM/yyyy HH:mm", cultura)</p>
+    </div>
+</header>

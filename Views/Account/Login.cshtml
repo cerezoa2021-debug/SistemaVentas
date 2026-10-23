@@ -1,0 +1,142 @@
+@model LoginViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Iniciar sesión";
+    var returnUrl = ViewData["ReturnUrl"] as string;
+    var googleLoginEnabled = ViewData["GoogleLoginEnabled"] as bool? == true;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Sistema de Ventas</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+        :root { --login-primary: #4f46e5; }
+        body {
+            display: grid;
+            min-height: 100vh;
+            place-items: center;
+            margin: 0;
+            padding: 24px 14px;
+            background:
+                radial-gradient(ellipse at 14% 15%, #ffffff3b 0, transparent 30%),
+                radial-gradient(ellipse at 87% 88%, #6c63f34a 0, transparent 31%),
+                linear-gradient(135deg, #242778 0%, #4f46e5 52%, #6c63d8 100%);
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+        }
+        .login-card {
+            width: min(100%, 445px);
+            overflow: hidden;
+            border: 1px solid #ffffff85;
+            border-radius: 20px;
+            background: #fff;
+            box-shadow: 0 24px 80px #17195257;
+        }
+        .login-card-body { padding: 38px 40px 36px; }
+        .login-brand {
+            display: grid;
+            width: 54px;
+            height: 54px;
+            place-items: center;
+            margin: 0 auto 15px;
+            border-radius: 16px;
+            background: linear-gradient(145deg, #6259f5, #4136c4);
+            box-shadow: 0 7px 18px #4f46e545;
+            color: #fff;
+            font-size: 1.5rem;
+        }
+        .login-card h1 { color: #20263c; font-size: 1.5rem; font-weight: 750; }
+        .login-subtitle { color: #798397; font-size: .9rem; }
+        .login-card .form-label { color: #344054; font-size: .82rem; font-weight: 650; }
+        .login-card .input-group-text {
+            border-color: #dfe4ed;
+            background: #f8f9fc;
+            color: #798397;
+        }
+        .login-card .form-control { min-height: 46px; border-color: #dfe4ed; font-size: .9rem; }
+        .login-card .form-control:focus { border-color: #817af0; box-shadow: 0 0 0 .2rem #4f46e51e; }
+        .password-toggle { min-width: 46px; border-color: #dfe4ed; color: #697586; }
+        .login-submit {
+            min-height: 48px;
+            border: 0;
+            background: var(--login-primary);
+            box-shadow: 0 6px 15px #4f46e533;
+            font-weight: 700;
+        }
+        .login-submit:hover { background: #3c35bd; }
+        .login-divider { display: flex; align-items: center; gap: 12px; margin: 23px 0; color: #98a2b3; font-size: .78rem; }
+        .login-divider::before, .login-divider::after { height: 1px; flex: 1; background: #e8ebf1; content: ""; }
+        .google-button { min-height: 46px; border-color: #dfe4ed; color: #344054; font-size: .88rem; font-weight: 600; }
+        .google-button:hover { border-color: #b8c0cf; background: #f8f9fc; color: #20263c; }
+        .validation-summary-valid { display: none; }
+        .validation-summary-errors { margin: 0 0 19px; padding: 12px 14px; border-radius: 9px; font-size: .83rem; }
+        .field-validation-error { display: block; margin-top: 5px; font-size: .76rem; }
+        @@media (max-width: 480px) { .login-card-body { padding: 31px 24px; } }
+    </style>
+</head>
+<body>
+    <main class="login-card">
+        <div class="login-card-body">
+            <header class="text-center mb-4">
+                <span class="login-brand"><i class="bi bi-shop-window" aria-hidden="true"></i></span>
+                <h1 class="mb-2">Sistema de Ventas</h1>
+                <p class="login-subtitle mb-0">Inicia sesión para continuar</p>
+            </header>
+
+            <form asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Username" class="form-label"></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person" aria-hidden="true"></i></span>
+                        <input asp-for="Username" class="form-control" autocomplete="username" placeholder="Tu usuario" autofocus />
+                    </div>
+                    <span asp-validation-for="Username" class="text-danger"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Password" class="form-label"></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock" aria-hidden="true"></i></span>
+                        <input asp-for="Password" class="form-control" id="password" autocomplete="current-password" placeholder="Tu contraseña" />
+                        <button class="btn password-toggle" type="button" id="togglePassword"
+                                aria-label="Mostrar contraseña" aria-pressed="false">
+                            <i class="bi bi-eye" id="eyeIcon" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary login-submit w-100">
+                    <i class="bi bi-box-arrow-in-right me-2" aria-hidden="true"></i>Iniciar sesión
+                </button>
+            </form>
+
+            @if (googleLoginEnabled)
+            {
+                <div class="login-divider">o</div>
+                <a class="btn google-button w-100" asp-controller="Account" asp-action="GoogleLogin" asp-route-returnUrl="@returnUrl">
+                    <i class="bi bi-google me-2" aria-hidden="true"></i>Continuar con Google
+                </a>
+            }
+        </div>
+    </main>
+    <script>
+        const passwordInput = document.getElementById("password");
+        const togglePassword = document.getElementById("togglePassword");
+        const eyeIcon = document.getElementById("eyeIcon");
+        togglePassword.addEventListener("click", () => {
+            const showPassword = passwordInput.type === "password";
+            passwordInput.type = showPassword ? "text" : "password";
+            togglePassword.setAttribute("aria-pressed", String(showPassword));
+            togglePassword.setAttribute("aria-label", showPassword ? "Ocultar contraseña" : "Mostrar contraseña");
+            eyeIcon.className = showPassword ? "bi bi-eye-slash" : "bi bi-eye";
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+@model ReporteStockViewModel
+@{
+    ViewData["Title"] = "Stock actual";
+}
+<section class="reports-page">
+    <div class="report-page-heading">
+        <div><span class="reports-eyebrow">REPORTE DE INVENTARIO</span><h2>Stock actual por producto</h2></div>
+        <a class="btn btn-outline-secondary btn-sm no-print" asp-action="Index"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Reportes</a>
+    </div>
+    <form class="report-filter no-print" asp-action="Stock" method="get">
+        <div class="report-filter-field">
+            <label for="categoriaId">Categoría</label>
+            <select class="form-select" id="categoriaId" name="categoriaId">
+                <option value="">Todas las categorías</option>
+                @foreach (var categoria in Model.Categorias)
+                {
+                    <option value="@categoria.Id" selected="@(Model.CategoriaId == categoria.Id)">@categoria.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="report-filter-field">
+            <label for="estado">Estado</label>
+            <select class="form-select" id="estado" name="estado">
+                <option value="Todos" selected="@(Model.Estado == "Todos")">Todos</option>
+                <option value="Disponible" selected="@(Model.Estado == "Disponible")">Disponible</option>
+                <option value="Bajo" selected="@(Model.Estado == "Bajo")">Bajo</option>
+                <option value="Agotado" selected="@(Model.Estado == "Agotado")">Agotado</option>
+            </select>
+        </div>
+        <div class="report-filter-field report-client-filter">
+            <label for="busqueda">Producto</label>
+            <input class="form-control" id="busqueda" name="busqueda" type="search" maxlength="100" value="@Model.Busqueda" placeholder="Buscar por nombre" />
+        </div>
+        <input type="hidden" name="tamanoPagina" value="@Model.TamanoPagina" />
+        <div class="report-filter-actions"><button class="btn btn-primary" type="submit"><i class="bi bi-funnel me-1" aria-hidden="true"></i>Filtrar</button></div>
+        <a class="btn btn-outline-secondary" asp-action="Stock">Limpiar filtros</a>
+    </form>
+    @if (Model.Error is not null)
+    {
+        <div class="alert alert-danger" role="alert">@Model.Error</div>
+    }
+    @if (Model.Error is null)
+    {
+        <div class="report-stock-counts no-print">
+            <span>@Model.Agotados agotados</span><span>@Model.Bajos con stock bajo</span><span>@Model.Disponibles disponibles</span>
+        </div>
+    }
+    <div class="report-toolbar no-print">
+        @if (Model.Error is null)
+        {
+            <a class="btn btn-outline-primary btn-sm" asp-action="ExportarStockCsv"
+               asp-route-categoriaId="@Model.CategoriaId" asp-route-estado="@Model.Estado" asp-route-busqueda="@Model.Busqueda">
+                <i class="bi bi-filetype-csv me-1" aria-hidden="true"></i>Exportar CSV
+            </a>
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Stock" asp-route-categoriaId="@Model.CategoriaId"
+               asp-route-estado="@Model.Estado" asp-route-busqueda="@Model.Busqueda" asp-route-imprimir="true">
+                <i class="bi bi-printer me-1" aria-hidden="true"></i>Imprimir
+            </a>
+        }
+    </div>
+    <article class="report-paper">
+        <partial name="_EncabezadoImpresion" model="Model" />
+        <h3 class="report-paper-title">Stock actual por producto y categoría</h3>
+        @if (Model.Error is null)
+        {
+            <div class="table-responsive">
+                <table class="table report-table align-middle">
+                    <thead><tr><th>Producto</th><th>Categoría</th><th class="text-end">Precio</th><th class="text-end">Stock</th><th class="text-end">Stock mínimo</th><th>Estado</th></tr></thead>
+                    <tbody>
+                    @foreach (var producto in Model.Productos)
+                    {
+                        var badgeClass = producto.Estado == "Disponible" ? "text-bg-success" : producto.Estado == "Bajo" ? "text-bg-warning" : "text-bg-danger";
+                        <tr><td>@producto.Producto</td><td>@producto.Categoria</td><td class="text-end">@producto.Precio.ToString("N2") Bs</td><td class="text-end">@producto.Stock</td><td class="text-end">@producto.StockMinimo</td><td><span class="badge @badgeClass">@producto.Estado</span></td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            @if (Model.TotalFilas == 0)
+            {
+                <p class="report-empty">No hay datos para los filtros seleccionados</p>
+            }
+        }
+    </article>
+    @if (Model.Error is null && !Model.EsImpresion)
+    {
+        <form class="report-pagination no-print" asp-action="Stock" method="get">
+            <input type="hidden" name="categoriaId" value="@Model.CategoriaId" />
+            <input type="hidden" name="estado" value="@Model.Estado" />
+            <input type="hidden" name="busqueda" value="@Model.Busqueda" />
+            <span>Mostrando @Model.PrimeraFila-@Model.UltimaFila de @Model.TotalFilas</span>
+            <label for="tamanoPagina">Filas por página</label>
+            <select id="tamanoPagina" name="tamanoPagina" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="25" selected="@(Model.TamanoPagina == 25)">25</option>
+                <option value="50" selected="@(Model.TamanoPagina == 50)">50</option>
+                <option value="100" selected="@(Model.TamanoPagina == 100)">100</option>
+            </select>
+            <button class="btn btn-outline-secondary btn-sm" type="submit" name="pagina" value="@(Model.Pagina - 1)" disabled="@(Model.Pagina <= 1)">Anterior</button>
+            <button class="btn btn-outline-secondary btn-sm" type="submit" name="pagina" value="@(Model.Pagina + 1)" disabled="@(Model.Pagina >= Model.TotalPaginas)">Siguiente</button>
+        </form>
+    }
+</section>
+@if (Model.EsImpresion)
+{
+    <script>window.addEventListener("load", () => window.print());</script>
+}

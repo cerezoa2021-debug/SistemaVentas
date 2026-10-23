@@ -1,4 +1,7 @@
 using System.Globalization;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SistemaVentas.Data;
 
@@ -31,6 +34,51 @@ builder.Services.AddControllersWithViews(options =>
         value => $"El valor '{value}' no es válido.");
 });
 
+var googleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
+var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
+var adminGoogleEmail = Environment.GetEnvironmentVariable("ADMIN_GOOGLE_EMAIL");
+var googleLoginEnabled = !string.IsNullOrWhiteSpace(googleClientId)
+    && !string.IsNullOrWhiteSpace(googleClientSecret)
+    && !string.IsNullOrWhiteSpace(adminGoogleEmail);
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/Login";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.SlidingExpiration = true;
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    });
+
+if (googleLoginEnabled)
+{
+    builder.Services.AddAuthentication()
+        .AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
+        {
+            options.ClientId = googleClientId!;
+            options.ClientSecret = googleClientSecret!;
+            options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            options.Scope.Add("email");
+            options.Events.OnTicketReceived = context =>
+            {
+                var email = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                if (!string.Equals(email, adminGoogleEmail, StringComparison.OrdinalIgnoreCase))
+                    context.Fail("La cuenta de Google no está autorizada para este sistema.");
+
+                return Task.CompletedTask;
+            };
+        });
+}
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 // 2) Base de datos. El proveedor se cambia SOLO en esta línea.
 //    Ahora: SQLite (archivo local). Ver README, sección "Conexión a Turso".
 var dbPath = Environment.GetEnvironmentVariable("DB_PATH") ?? "ventas.db";
@@ -51,6 +99,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapStaticAssets();
 app.MapControllers();

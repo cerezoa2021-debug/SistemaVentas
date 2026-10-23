@@ -1,0 +1,108 @@
+@model ReporteMasVendidosViewModel
+@{
+    ViewData["Title"] = "Productos más vendidos";
+}
+<section class="reports-page">
+    <div class="report-page-heading">
+        <div><span class="reports-eyebrow">REPORTE DE PRODUCTOS</span><h2>Productos más vendidos</h2></div>
+        <a class="btn btn-outline-secondary btn-sm no-print" asp-action="Index"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Reportes</a>
+    </div>
+    <form class="report-filter no-print" asp-action="MasVendidos" method="get" data-date-range>
+        <div class="report-filter-field"><label for="desde">Desde</label><input class="form-control" id="desde" name="desde" type="date" required value="@Model.Desde?.ToString("yyyy-MM-dd")" /></div>
+        <div class="report-filter-field"><label for="hasta">Hasta</label><input class="form-control" id="hasta" name="hasta" type="date" required value="@Model.Hasta?.ToString("yyyy-MM-dd")" /></div>
+        <div class="report-filter-field">
+            <label for="categoriaId">Categoría</label>
+            <select class="form-select" id="categoriaId" name="categoriaId">
+                <option value="">Todas las categorías</option>
+                @foreach (var categoria in Model.Categorias)
+                {
+                    <option value="@categoria.Id" selected="@(Model.CategoriaId == categoria.Id)">@categoria.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="report-filter-field">
+            <label for="mostrar">Mostrar</label>
+            <select class="form-select" id="mostrar" name="mostrar">
+                <option value="10" selected="@(Model.Mostrar == "10")">Top 10</option>
+                <option value="20" selected="@(Model.Mostrar == "20")">Top 20</option>
+                <option value="50" selected="@(Model.Mostrar == "50")">Top 50</option>
+                <option value="Todos" selected="@(Model.Mostrar == "Todos")">Todos</option>
+            </select>
+        </div>
+        <div class="report-filter-field">
+            <label for="orden">Ordenar por</label>
+            <select class="form-select" id="orden" name="orden">
+                <option value="cantidad" selected="@(Model.Orden == "cantidad")">Cantidad vendida</option>
+                <option value="monto" selected="@(Model.Orden == "monto")">Monto vendido</option>
+            </select>
+        </div>
+        <input type="hidden" name="tamanoPagina" value="@Model.TamanoPagina" />
+        <div class="report-filter-actions"><button class="btn btn-primary" type="submit"><i class="bi bi-funnel me-1" aria-hidden="true"></i>Filtrar</button></div>
+        <a class="btn btn-outline-secondary" asp-action="MasVendidos">Limpiar filtros</a>
+    </form>
+    @if (Model.Error is not null)
+    {
+        <div class="alert alert-danger" role="alert">@Model.Error</div>
+    }
+    <div class="report-toolbar no-print">
+        @if (Model.Error is null)
+        {
+            <a class="btn btn-outline-primary btn-sm" asp-action="ExportarMasVendidosCsv"
+               asp-route-desde="@Model.Desde?.ToString("yyyy-MM-dd")" asp-route-hasta="@Model.Hasta?.ToString("yyyy-MM-dd")"
+               asp-route-categoriaId="@Model.CategoriaId" asp-route-mostrar="@Model.Mostrar" asp-route-orden="@Model.Orden">
+                <i class="bi bi-filetype-csv me-1" aria-hidden="true"></i>Exportar CSV
+            </a>
+            <a class="btn btn-outline-secondary btn-sm" asp-action="MasVendidos" asp-route-desde="@Model.Desde?.ToString("yyyy-MM-dd")"
+               asp-route-hasta="@Model.Hasta?.ToString("yyyy-MM-dd")" asp-route-categoriaId="@Model.CategoriaId"
+               asp-route-mostrar="@Model.Mostrar" asp-route-orden="@Model.Orden" asp-route-imprimir="true">
+                <i class="bi bi-printer me-1" aria-hidden="true"></i>Imprimir
+            </a>
+        }
+    </div>
+    <article class="report-paper">
+        <partial name="_EncabezadoImpresion" model="Model" />
+        <h3 class="report-paper-title">Productos más vendidos</h3>
+        @if (Model.Error is null)
+        {
+            <div class="table-responsive">
+                <table class="table report-table align-middle">
+                    <thead><tr><th>Producto</th><th>Categoría</th><th class="text-end">Cantidad</th><th class="text-end">Monto vendido</th></tr></thead>
+                    <tbody>
+                    @foreach (var producto in Model.Productos)
+                    {
+                        <tr><td>@producto.Producto</td><td>@producto.Categoria</td><td class="text-end">@producto.Cantidad</td><td class="text-end">@producto.MontoVendido.ToString("N2") Bs</td></tr>
+                    }
+                    </tbody>
+                    <tfoot><tr><th colspan="2">Totales</th><th class="text-end">@Model.TotalUnidades</th><th class="text-end">@Model.TotalVendido.ToString("N2") Bs</th></tr></tfoot>
+                </table>
+            </div>
+            @if (Model.TotalFilas == 0)
+            {
+                <p class="report-empty">No hay datos para los filtros seleccionados</p>
+            }
+        }
+    </article>
+    @if (Model.Error is null && !Model.EsImpresion)
+    {
+        <form class="report-pagination no-print" asp-action="MasVendidos" method="get">
+            <input type="hidden" name="desde" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="hasta" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="categoriaId" value="@Model.CategoriaId" />
+            <input type="hidden" name="mostrar" value="@Model.Mostrar" />
+            <input type="hidden" name="orden" value="@Model.Orden" />
+            <span>Mostrando @Model.PrimeraFila-@Model.UltimaFila de @Model.TotalFilas</span>
+            <label for="tamanoPagina">Filas por página</label>
+            <select id="tamanoPagina" name="tamanoPagina" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="25" selected="@(Model.TamanoPagina == 25)">25</option>
+                <option value="50" selected="@(Model.TamanoPagina == 50)">50</option>
+                <option value="100" selected="@(Model.TamanoPagina == 100)">100</option>
+            </select>
+            <button class="btn btn-outline-secondary btn-sm" type="submit" name="pagina" value="@(Model.Pagina - 1)" disabled="@(Model.Pagina <= 1)">Anterior</button>
+            <button class="btn btn-outline-secondary btn-sm" type="submit" name="pagina" value="@(Model.Pagina + 1)" disabled="@(Model.Pagina >= Model.TotalPaginas)">Siguiente</button>
+        </form>
+    }
+</section>
+@if (Model.EsImpresion)
+{
+    <script>window.addEventListener("load", () => window.print());</script>
+}

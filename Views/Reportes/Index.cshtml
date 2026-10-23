@@ -1,0 +1,25 @@
+@model ReportesIndexViewModel
+@{
+    ViewData["Title"] = "Reportes";
+}
+
+<section class="reports-page">
+    <div class="reports-intro">
+        <span class="reports-eyebrow">ANÁLISIS DEL NEGOCIO</span>
+        <h2>Centro de reportes</h2>
+        <p>Consulta la actividad de ventas, el inventario y la información de tus clientes.</p>
+    </div>
+    <div class="report-menu-grid">
+        @foreach (var reporte in Model.Reportes)
+        {
+            <a class="report-menu-card" asp-controller="Reportes" asp-action="@reporte.Accion">
+                <span class="report-menu-icon"><i class="bi @reporte.Icono" aria-hidden="true"></i></span>
+                <span class="report-menu-copy">
+                    <strong>@reporte.Titulo</strong>
+                    <span>@reporte.Descripcion</span>
+                    <b>Ver reporte <i class="bi bi-arrow-right" aria-hidden="true"></i></b>
+                </span>
+            </a>
+        }
+    </div>
+</section>

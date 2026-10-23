@@ -20,6 +20,7 @@ public class HomeController : Controller
         var today = now.Date;
         var monthStart = new DateTime(now.Year, now.Month, 1);
         var yearStart = new DateTime(now.Year, 1, 1);
+        var weekStart = today.AddDays(-6);
         var activeSales = _context.Ventas.AsNoTracking().Where(venta => !venta.Anulada);
 
         var todaySales = activeSales.Where(venta => venta.Fecha >= today && venta.Fecha < today.AddDays(1));
@@ -30,6 +31,23 @@ public class HomeController : Controller
             .GroupBy(venta => venta.Fecha.Month)
             .Select(group => new { Month = group.Key, Amount = group.Sum(venta => venta.Total) })
             .ToListAsync();
+        var weeklySalesRows = await activeSales
+            .Where(venta => venta.Fecha >= weekStart && venta.Fecha < today.AddDays(1))
+            .Select(venta => new { venta.Fecha, venta.Total })
+            .ToListAsync();
+        var weeklySales = Enumerable.Range(0, 7)
+            .Select(offset =>
+            {
+                var date = weekStart.AddDays(offset);
+                return new WeeklySalesViewModel
+                {
+                    Date = date,
+                    Amount = weeklySalesRows
+                        .Where(sale => sale.Fecha.Date == date)
+                        .Sum(sale => sale.Total)
+                };
+            })
+            .ToList();
 
         var salesByCategory = await _context.DetallesVenta
             .AsNoTracking()
@@ -67,6 +85,8 @@ public class HomeController : Controller
             TotalSalesAmount = await activeSales.SumAsync(venta => (decimal?)venta.Total) ?? 0,
             MonthSalesCount = await monthSales.CountAsync(),
             MonthSalesAmount = await monthSales.SumAsync(venta => (decimal?)venta.Total) ?? 0,
+            TotalProducts = await _context.Productos.CountAsync(),
+            LowStockProductsCount = await _context.Productos.CountAsync(product => product.Stock <= product.StockMinimo),
             RegisteredClients = await _context.Clientes.CountAsync(),
             AverageMonthlySales = (await yearSales.SumAsync(venta => (decimal?)venta.Total) ?? 0) / now.Month,
             MonthlySales = Enumerable.Range(1, 12)
@@ -76,6 +96,7 @@ public class HomeController : Controller
                     Amount = monthlyTotals.FirstOrDefault(total => total.Month == month)?.Amount ?? 0
                 })
                 .ToList(),
+            WeeklySales = weeklySales,
             SalesByCategory = salesByCategory,
             BestSellingProducts = bestSellingProducts,
             RecentSales = await _context.Ventas
