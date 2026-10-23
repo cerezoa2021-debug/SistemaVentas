@@ -12,4 +12,6 @@ public class LoginViewModel
     [DataType(DataType.Password)]
     [Display(Name = "Contraseña")]
     public string Password { get; set; } = string.Empty;
+
+    public bool RememberMe { get; set; }
 }

@@ -56,7 +56,7 @@ public class AccountController : Controller
             return View(model);
         }
 
-        await SignInAdminAsync(model.Username);
+        await SignInAdminAsync(model.Username, model.RememberMe);
         return LocalRedirectOrDashboard(returnUrl);
     }
 
@@ -78,7 +78,7 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
-    private async Task SignInAdminAsync(string username)
+    private async Task SignInAdminAsync(string username, bool remember)
     {
         var claims = new[]
         {
@@ -88,7 +88,13 @@ public class AccountController : Controller
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(identity));
+            new ClaimsPrincipal(identity),
+            new AuthenticationProperties
+            {
+                IsPersistent = remember,
+                ExpiresUtc = remember ? DateTimeOffset.UtcNow.AddDays(30) : null,
+                AllowRefresh = true
+            });
     }
 
     private IActionResult LocalRedirectOrDashboard(string? returnUrl) =>

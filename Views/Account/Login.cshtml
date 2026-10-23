@@ -58,6 +58,11 @@
         }
         .login-card .form-control { min-height: 46px; border-color: #dfe4ed; font-size: .9rem; }
         .login-card .form-control:focus { border-color: #817af0; box-shadow: 0 0 0 .2rem #4f46e51e; }
+        .login-card .form-check { min-height: 24px; }
+        .login-card .form-check-input { width: 17px; height: 17px; margin-top: .15em; border-color: #aab3c2; }
+        .login-card .form-check-input:checked { border-color: var(--login-primary); background-color: var(--login-primary); }
+        .login-card .form-check-input:focus { border-color: #817af0; box-shadow: 0 0 0 .2rem #4f46e51e; }
+        .login-card .form-check-label { color: #344054; font-size: .82rem; cursor: pointer; }
         .password-toggle { min-width: 46px; border-color: #dfe4ed; color: #697586; }
         .login-submit {
             min-height: 48px;
@@ -110,6 +115,11 @@
                         </button>
                     </div>
                     <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+
+                <div class="form-check mb-4">
+                    <input asp-for="RememberMe" class="form-check-input" />
+                    <label asp-for="RememberMe" class="form-check-label">Recordarme en este equipo</label>
                 </div>
 
                 <button type="submit" class="btn btn-primary login-submit w-100">
