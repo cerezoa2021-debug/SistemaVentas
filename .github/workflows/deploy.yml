@@ -19,13 +19,14 @@ jobs:
         run: dotnet publish SistemaVentas.csproj -c Release -o publish
 
       - name: Detener temporalmente la aplicación
+        id: offline
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
           printf '%s\n' '<html><body><h1>Sistema en actualización</h1><p>Vuelve a intentarlo en unos minutos.</p></body></html>' > "$RUNNER_TEMP/app_offline.htm"
-          curl --fail --show-error --silent --insecure --ssl-reqd --ftp-pasv \
+          curl --fail --show-error --silent --ssl-reqd --ftp-pasv \
             --user "$FTP_USERNAME:$FTP_PASSWORD" \
             --upload-file "$RUNNER_TEMP/app_offline.htm" \
             "ftp://$FTP_SERVER/wwwroot/app_offline.htm"
@@ -37,7 +38,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp
+          protocol: ftps
           local-dir: ./publish/
           server-dir: /wwwroot/
           exclude: |
@@ -45,13 +46,13 @@ jobs:
             **/.git*/**
 
       - name: Reactivar la aplicación
-        if: success()
+        if: always() && steps.offline.outcome == 'success'
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
-          curl --fail --show-error --silent --insecure --ssl-reqd --ftp-pasv \
+          curl --fail --show-error --silent --ssl-reqd --ftp-pasv \
             --user "$FTP_USERNAME:$FTP_PASSWORD" \
             --quote "DELE /wwwroot/app_offline.htm" \
             "ftp://$FTP_SERVER/"

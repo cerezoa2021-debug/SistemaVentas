@@ -27,10 +27,12 @@ public class HomeController : Controller
         var monthSales = activeSales.Where(venta => venta.Fecha >= monthStart && venta.Fecha < monthStart.AddMonths(1));
         var yearSales = activeSales.Where(venta => venta.Fecha >= yearStart && venta.Fecha < yearStart.AddYears(1));
 
-        var monthlyTotals = await yearSales
-            .GroupBy(venta => venta.Fecha.Month)
-            .Select(group => new { Month = group.Key, Amount = group.Sum(venta => venta.Total) })
+        var yearSalesRows = await yearSales
+            .Select(venta => new { venta.Fecha, venta.Total })
             .ToListAsync();
+        var monthlyTotals = yearSalesRows
+            .GroupBy(venta => venta.Fecha.Month)
+            .ToDictionary(group => group.Key, group => group.Sum(venta => venta.Total));
         var weeklySalesRows = await activeSales
             .Where(venta => venta.Fecha >= weekStart && venta.Fecha < today.AddDays(1))
             .Select(venta => new { venta.Fecha, venta.Total })
@@ -49,17 +51,24 @@ public class HomeController : Controller
             })
             .ToList();
 
-        var salesByCategory = await _context.DetallesVenta
+        var categorySalesRows = await _context.DetallesVenta
             .AsNoTracking()
             .Where(detail => detail.Venta != null && !detail.Venta.Anulada)
-            .GroupBy(detail => detail.Producto!.Categoria!.Nombre)
+            .Select(detail => new
+            {
+                CategoryName = detail.Producto!.Categoria!.Nombre,
+                detail.Subtotal
+            })
+            .ToListAsync();
+        var salesByCategory = categorySalesRows
+            .GroupBy(detail => detail.CategoryName)
             .Select(group => new CategorySalesViewModel
             {
                 Name = group.Key,
                 Amount = group.Sum(detail => detail.Subtotal)
             })
             .OrderByDescending(category => category.Amount)
-            .ToListAsync();
+            .ToList();
 
         var bestSellingProducts = await _context.DetallesVenta
             .AsNoTracking()
@@ -74,26 +83,34 @@ public class HomeController : Controller
             .ThenBy(product => product.Name)
             .Take(5)
             .ToListAsync();
+        var allActiveSaleTotals = await activeSales
+            .Select(venta => venta.Total)
+            .ToListAsync();
+        var yearSalesTotal = yearSalesRows.Sum(venta => venta.Total);
 
         var viewModel = new DashboardViewModel
         {
             Today = now,
             SelectedYear = now.Year,
             TodaySalesCount = await todaySales.CountAsync(),
-            TodaySalesAmount = await todaySales.SumAsync(venta => (decimal?)venta.Total) ?? 0,
+            TodaySalesAmount = yearSalesRows
+                .Where(venta => venta.Fecha >= today && venta.Fecha < today.AddDays(1))
+                .Sum(venta => venta.Total),
             TotalSalesCount = await activeSales.CountAsync(),
-            TotalSalesAmount = await activeSales.SumAsync(venta => (decimal?)venta.Total) ?? 0,
+            TotalSalesAmount = allActiveSaleTotals.Sum(),
             MonthSalesCount = await monthSales.CountAsync(),
-            MonthSalesAmount = await monthSales.SumAsync(venta => (decimal?)venta.Total) ?? 0,
+            MonthSalesAmount = yearSalesRows
+                .Where(venta => venta.Fecha >= monthStart && venta.Fecha < monthStart.AddMonths(1))
+                .Sum(venta => venta.Total),
             TotalProducts = await _context.Productos.CountAsync(),
             LowStockProductsCount = await _context.Productos.CountAsync(product => product.Stock <= product.StockMinimo),
             RegisteredClients = await _context.Clientes.CountAsync(),
-            AverageMonthlySales = (await yearSales.SumAsync(venta => (decimal?)venta.Total) ?? 0) / now.Month,
+            AverageMonthlySales = yearSalesTotal / now.Month,
             MonthlySales = Enumerable.Range(1, 12)
                 .Select(month => new MonthlySalesViewModel
                 {
                     Month = month,
-                    Amount = monthlyTotals.FirstOrDefault(total => total.Month == month)?.Amount ?? 0
+                    Amount = monthlyTotals.GetValueOrDefault(month)
                 })
                 .ToList(),
             WeeklySales = weeklySales,
