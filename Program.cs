@@ -25,6 +25,8 @@ CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+
 var dataProtectionPath = Environment.GetEnvironmentVariable("DATA_PROTECTION_PATH");
 var keyDirectory = string.IsNullOrWhiteSpace(dataProtectionPath)
     ? Path.Combine(builder.Environment.ContentRootPath, "keys")
@@ -89,11 +91,32 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
-// 2) Base de datos. El proveedor se cambia SOLO en esta línea.
-//    Ahora: SQLite (archivo local). Ver README, sección "Conexión a Turso".
+// 2) Use https://<database-host>/v2/pipeline;<database-token> for Turso.
+//    Without TURSO_CONNECTION_STRING, keep using the local SQLite file.
+var tursoConnectionString = Environment.GetEnvironmentVariable("TURSO_CONNECTION_STRING");
+if (!string.IsNullOrWhiteSpace(tursoConnectionString))
+{
+    var connectionParts = tursoConnectionString.Split(';');
+    if (connectionParts.Length != 2
+        || !Uri.TryCreate(connectionParts[0], UriKind.Absolute, out var tursoUri)
+        || tursoUri.Scheme != Uri.UriSchemeHttps
+        || !string.Equals(tursoUri.AbsolutePath, "/v2/pipeline", StringComparison.OrdinalIgnoreCase)
+        || string.IsNullOrWhiteSpace(connectionParts[1])
+        || connectionParts[1].Any(char.IsWhiteSpace))
+    {
+        throw new InvalidOperationException(
+            "TURSO_CONNECTION_STRING must use the format https://<database-host>/v2/pipeline;<database-token>.");
+    }
+}
+
 var dbPath = Environment.GetEnvironmentVariable("DB_PATH") ?? "ventas.db";
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite($"Data Source={dbPath}"));
+{
+    if (string.IsNullOrWhiteSpace(tursoConnectionString))
+        options.UseSqlite($"Data Source={dbPath}");
+    else
+        options.UseLibSql(tursoConnectionString);
+});
 
 // 3) Railway entrega el puerto en la variable PORT
 var port = Environment.GetEnvironmentVariable("PORT");
@@ -101,6 +124,12 @@ if (!string.IsNullOrEmpty(port))
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 var app = builder.Build();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
 
 if (!app.Environment.IsDevelopment())
 {
