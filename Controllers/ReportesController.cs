@@ -252,11 +252,18 @@ public class ReportesController : Controller
         model.FiltrosAplicados = $"Desde: {inicio:dd/MM/yyyy} · Hasta: {rango.Hasta:dd/MM/yyyy} · Categoría: {NombreCategoria(model.Categorias, categoriaId)} · Cliente: {NombreCliente(model.Clientes, clienteId)} · Estado: {estado}";
         var vigentes = query.Where(venta => !venta.Anulada);
         model.CantidadVentas = await vigentes.CountAsync();
-        model.TotalVentas = await vigentes.SumAsync(venta => categoriaId.HasValue
-            ? venta.Detalles.Where(detalle => detalle.Producto!.CategoriaId == categoriaId.Value).Sum(detalle => (decimal?)detalle.Subtotal) ?? 0
-            : venta.Total);
-        model.TotalRecibido = await vigentes.SumAsync(venta => (decimal?)venta.Recibido) ?? 0;
-        model.TotalCambio = await vigentes.SumAsync(venta => (decimal?)venta.Cambio) ?? 0;
+        var totalesVentas = await vigentes
+            .Select(venta => new { venta.Total, venta.Recibido, venta.Cambio })
+            .ToListAsync();
+        model.TotalVentas = categoriaId.HasValue
+            ? (await vigentes
+                .SelectMany(venta => venta.Detalles
+                    .Where(detalle => detalle.Producto!.CategoriaId == categoriaId.Value)
+                    .Select(detalle => detalle.Subtotal))
+                .ToListAsync()).Sum()
+            : totalesVentas.Sum(venta => venta.Total);
+        model.TotalRecibido = totalesVentas.Sum(venta => venta.Recibido);
+        model.TotalCambio = totalesVentas.Sum(venta => venta.Cambio);
 
         var filas = query.OrderByDescending(venta => venta.Fecha).ThenByDescending(venta => venta.Id)
             .Select(venta => new VentaReporteFilaViewModel
@@ -265,15 +272,25 @@ public class ReportesController : Controller
                 Fecha = venta.Fecha,
                 Cliente = venta.Cliente!.Nombre,
                 Total = venta.Total,
-                SubtotalCategoria = categoriaId.HasValue
-                    ? venta.Detalles.Where(detalle => detalle.Producto!.CategoriaId == categoriaId.Value)
-                        .Sum(detalle => (decimal?)detalle.Subtotal) ?? 0
-                    : venta.Total,
+                SubtotalCategoria = categoriaId.HasValue ? 0 : venta.Total,
                 Recibido = venta.Recibido,
                 Cambio = venta.Cambio,
                 Anulada = venta.Anulada
             });
         await CargarPaginaAsync(model, filas, pagina, tamanoPagina, incluirTodos, rows => model.Ventas = rows);
+        if (categoriaId.HasValue)
+        {
+            var subtotalesPorVenta = await _context.DetallesVenta.AsNoTracking()
+                .Where(detalle => detalle.Producto!.CategoriaId == categoriaId.Value
+                    && query.Any(venta => venta.Id == detalle.VentaId))
+                .Select(detalle => new { detalle.VentaId, detalle.Subtotal })
+                .ToListAsync();
+            var totalesPorVenta = subtotalesPorVenta
+                .GroupBy(detalle => detalle.VentaId)
+                .ToDictionary(grupo => grupo.Key, grupo => grupo.Sum(detalle => detalle.Subtotal));
+            foreach (var venta in model.Ventas)
+                venta.SubtotalCategoria = totalesPorVenta.GetValueOrDefault(venta.Id);
+        }
         return model;
     }
 
@@ -320,11 +337,20 @@ public class ReportesController : Controller
         if (categoriaId.HasValue)
             detalles = detalles.Where(detalle => detalle.Producto!.CategoriaId == categoriaId.Value);
 
-        var agrupados = detalles.GroupBy(detalle => new
+        var filasDetalle = await detalles.Select(detalle => new
             {
                 detalle.ProductoId,
                 Producto = detalle.Producto!.Nombre,
-                Categoria = detalle.Producto.Categoria!.Nombre
+                Categoria = detalle.Producto.Categoria!.Nombre,
+                detalle.Cantidad,
+                detalle.Subtotal
+            })
+            .ToListAsync();
+        var agrupados = filasDetalle.GroupBy(detalle => new
+            {
+                detalle.ProductoId,
+                detalle.Producto,
+                detalle.Categoria
             })
             .Select(grupo => new ProductoVendidoReporteViewModel
             {
@@ -332,17 +358,18 @@ public class ReportesController : Controller
                 Categoria = grupo.Key.Categoria,
                 Cantidad = grupo.Sum(detalle => detalle.Cantidad),
                 MontoVendido = grupo.Sum(detalle => detalle.Subtotal)
-            });
-        IOrderedQueryable<ProductoVendidoReporteViewModel> ordenados = orden == "monto"
+            })
+            .ToList();
+        IOrderedEnumerable<ProductoVendidoReporteViewModel> ordenados = orden == "monto"
             ? agrupados.OrderByDescending(producto => producto.MontoVendido).ThenBy(producto => producto.Producto)
             : agrupados.OrderByDescending(producto => producto.Cantidad).ThenBy(producto => producto.Producto);
         var limit = mostrar == "Todos" ? (int?)null : int.Parse(mostrar, CultureInfo.InvariantCulture);
-        var seleccionados = limit.HasValue ? ordenados.Take(limit.Value) : ordenados;
-        model.TotalUnidades = await seleccionados.SumAsync(producto => (int?)producto.Cantidad) ?? 0;
-        model.TotalVendido = await seleccionados.SumAsync(producto => (decimal?)producto.MontoVendido) ?? 0;
+        var seleccionados = (limit.HasValue ? ordenados.Take(limit.Value) : ordenados).ToList();
+        model.TotalUnidades = seleccionados.Sum(producto => producto.Cantidad);
+        model.TotalVendido = seleccionados.Sum(producto => producto.MontoVendido);
         var mostrarEtiqueta = mostrar == "Todos" ? "Todos" : $"Top {mostrar}";
         model.FiltrosAplicados = $"Desde: {inicio:dd/MM/yyyy} · Hasta: {rango.Hasta:dd/MM/yyyy} · Categoría: {NombreCategoria(model.Categorias, categoriaId)} · Mostrar: {mostrarEtiqueta} · Orden: {(orden == "monto" ? "Monto vendido" : "Cantidad vendida")}";
-        await CargarPaginaAsync(model, seleccionados, pagina, tamanoPagina, incluirTodos, rows => model.Productos = rows);
+        CargarPaginaEnMemoria(model, seleccionados, pagina, tamanoPagina, incluirTodos, rows => model.Productos = rows);
         return model;
     }
 
@@ -469,18 +496,32 @@ public class ReportesController : Controller
                 || (cliente.Email != null && cliente.Email.ToLower().Contains(termino)));
         }
 
-        var query = clientes.Select(cliente => new ClienteReporteFilaViewModel
-        {
-            Nombre = cliente.Nombre,
-            Celular = cliente.Celular ?? string.Empty,
-            Correo = cliente.Email ?? string.Empty,
-            Compras = cliente.Ventas.Count(venta => !venta.Anulada
+        var clientesFiltrados = await clientes
+            .Select(cliente => new { cliente.Id, cliente.Nombre, cliente.Celular, cliente.Email })
+            .ToListAsync();
+        var ventasClientes = await _context.Ventas.AsNoTracking()
+            .Where(venta => !venta.Anulada
                 && (!inicio.HasValue || venta.Fecha >= inicio.Value)
-                && (!finExclusivo.HasValue || venta.Fecha < finExclusivo.Value)),
-            MontoTotal = cliente.Ventas.Where(venta => !venta.Anulada
-                    && (!inicio.HasValue || venta.Fecha >= inicio.Value)
-                    && (!finExclusivo.HasValue || venta.Fecha < finExclusivo.Value))
-                .Sum(venta => (decimal?)venta.Total) ?? 0
+                && (!finExclusivo.HasValue || venta.Fecha < finExclusivo.Value)
+                && clientes.Any(cliente => cliente.Id == venta.ClienteId))
+            .Select(venta => new { venta.ClienteId, venta.Total })
+            .ToListAsync();
+        var comprasPorCliente = ventasClientes
+            .GroupBy(venta => venta.ClienteId)
+            .ToDictionary(
+                grupo => grupo.Key,
+                grupo => (Compras: grupo.Count(), MontoTotal: grupo.Sum(venta => venta.Total)));
+        var query = clientesFiltrados.Select(cliente =>
+        {
+            var compras = comprasPorCliente.GetValueOrDefault(cliente.Id);
+            return new ClienteReporteFilaViewModel
+            {
+                Nombre = cliente.Nombre,
+                Celular = cliente.Celular ?? string.Empty,
+                Correo = cliente.Email ?? string.Empty,
+                Compras = compras.Compras,
+                MontoTotal = compras.MontoTotal
+            };
         });
         if (comprasFiltro == "Con compras")
             query = query.Where(cliente => cliente.Compras > 0);
@@ -499,7 +540,7 @@ public class ReportesController : Controller
             _ => "Nombre (A-Z)"
         };
         model.FiltrosAplicados = $"Búsqueda: {(string.IsNullOrEmpty(model.Busqueda) ? "Todas" : model.Busqueda)} · Compras: {comprasFiltro} · Desde: {(inicio.HasValue ? inicio.Value.ToString("dd/MM/yyyy") : "Todas")} · Hasta: {(hasta.HasValue ? hasta.Value.ToString("dd/MM/yyyy") : "Todas")} · Orden: {ordenEtiqueta}";
-        await CargarPaginaAsync(model, ordenados, pagina, tamanoPagina, incluirTodos, rows => model.Clientes = rows);
+        CargarPaginaEnMemoria(model, ordenados.ToList(), pagina, tamanoPagina, incluirTodos, rows => model.Clientes = rows);
         return model;
     }
 
@@ -514,6 +555,19 @@ public class ReportesController : Controller
             ? await query.ToListAsync()
             : await query.Skip((model.Pagina - 1) * tamanoPagina).Take(tamanoPagina).ToListAsync();
         asignarFilas(filas);
+    }
+
+    private void CargarPaginaEnMemoria<T>(
+        ReportPrintHeaderViewModel model, List<T> filas,
+        int pagina, int tamanoPagina, bool incluirTodos, Action<List<T>> asignarFilas)
+    {
+        model.TamanoPagina = tamanoPagina;
+        model.TotalFilas = filas.Count;
+        model.Pagina = Math.Clamp(pagina, 1, model.TotalPaginas);
+        var paginaFilas = incluirTodos
+            ? filas
+            : filas.Skip((model.Pagina - 1) * tamanoPagina).Take(tamanoPagina).ToList();
+        asignarFilas(paginaFilas);
     }
 
     private string? ValidarPaginacion(int pagina, int tamanoPagina)

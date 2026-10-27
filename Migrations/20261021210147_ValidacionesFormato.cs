@@ -10,6 +10,8 @@ namespace SistemaVentas.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql("UPDATE \"Clientes\" SET \"Celular\" = NULL WHERE \"Celular\" IS NOT NULL AND (\"Celular\" GLOB '*[^0-9]*' OR length(\"Celular\") NOT BETWEEN 7 AND 8);");
+
             migrationBuilder.DropCheckConstraint(
                 name: "CK_Clientes_Celular_Length",
                 table: "Clientes");
